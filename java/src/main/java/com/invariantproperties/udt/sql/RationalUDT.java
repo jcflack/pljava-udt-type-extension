@@ -29,9 +29,11 @@ import java.sql.SQLOutput;
 import java.util.ResourceBundle;
 
 import org.postgresql.pljava.annotation.BaseUDT;
+import org.postgresql.pljava.annotation.Cast;
 import org.postgresql.pljava.annotation.Function;
 import org.postgresql.pljava.annotation.SQLAction;
 import org.postgresql.pljava.annotation.SQLActions;
+import static org.postgresql.pljava.annotation.Cast.Application.ASSIGNMENT;
 import static
     org.postgresql.pljava.annotation.Function.OnNullInput.RETURNS_NULL;
 import static org.postgresql.pljava.annotation.Function.Effects.IMMUTABLE;
@@ -68,28 +70,6 @@ import com.invariantproperties.udt.Rational;
         remove={
             "DROP AGGREGATE max(invariantproperties.rational)",
             "DROP AGGREGATE min(invariantproperties.rational)"
-        }
-    ),
-    @SQLAction(
-        requires={"rationalfromstring", "rationalfromint", "rationalfromlong"},
-        install={
-            "CREATE CAST (varchar AS invariantproperties.rational) " +
-            "WITH FUNCTION " +
-	    "invariantproperties.rational_string_as_rational(varchar)" +
-            "AS ASSIGNMENT",
-
-            "CREATE CAST (int4 AS invariantproperties.rational) " +
-            "WITH FUNCTION invariantproperties.rational_int_as_rational(int4)" +
-            "AS ASSIGNMENT",
-
-            "CREATE CAST (int8 AS invariantproperties.rational) " +
-            "WITH FUNCTION invariantproperties.rational_long_as_rational(int8)"+
-            "AS ASSIGNMENT"
-        },
-        remove={
-	    "DROP CAST (int8 AS invariantproperties.rational)",
-	    "DROP CAST (int4 AS invariantproperties.rational)",
-	    "DROP CAST (varchar AS invariantproperties.rational)"
         }
     )
 })
@@ -441,8 +421,8 @@ public class RationalUDT implements SQLData {
      * @throws SQLException
      */
     @Function(schema="invariantproperties", name="rational_string_as_rational",
-        provides="rationalfromstring",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
+    @Cast(application=ASSIGNMENT)
     public static RationalUDT newInstance(String input) throws SQLException {
         if (input == null) {
             return null;
@@ -458,8 +438,8 @@ public class RationalUDT implements SQLData {
      * @throws SQLException
      */
     @Function(schema="invariantproperties", name="rational_int_as_rational",
-        provides="rationalfromint",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
+    @Cast(application=ASSIGNMENT)
     public static RationalUDT newInstance(int value) throws SQLException {
         return new RationalUDT(value);
     }
@@ -472,8 +452,8 @@ public class RationalUDT implements SQLData {
      * @throws SQLException
      */
     @Function(schema="invariantproperties", name="rational_long_as_rational",
-        provides="rationalfromlong",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
+    @Cast(application=ASSIGNMENT)
     public static RationalUDT newInstance(long value) throws SQLException {
         return new RationalUDT(value);
     }
