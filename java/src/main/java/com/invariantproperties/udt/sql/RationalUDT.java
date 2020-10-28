@@ -28,6 +28,7 @@ import java.sql.SQLInput;
 import java.sql.SQLOutput;
 import java.util.ResourceBundle;
 
+import org.postgresql.pljava.annotation.Aggregate;
 import org.postgresql.pljava.annotation.BaseUDT;
 import org.postgresql.pljava.annotation.Cast;
 import org.postgresql.pljava.annotation.Function;
@@ -55,24 +56,22 @@ import com.invariantproperties.udt.Rational;
     internalLength=16,
     alignment=BaseUDT.Alignment.INT4 // can this be right? components are 8 wide
 )
-@SQLActions({
-    @SQLAction(requires={"rationalmin", "rationalmax"},
-        install={
-            "CREATE AGGREGATE min(invariantproperties.rational) (" +
-            "sfunc = invariantproperties.min," +
-            "stype = invariantproperties.rational" +
-            ")",
-            "CREATE AGGREGATE max(invariantproperties.rational) (" +
-            "sfunc = invariantproperties.max," +
-            "stype = invariantproperties.rational" +
-            ")"
-        },
-        remove={
-            "DROP AGGREGATE max(invariantproperties.rational)",
-            "DROP AGGREGATE min(invariantproperties.rational)"
-        }
+@Aggregate(
+    name = "min",
+    arguments = "x invariantproperties.rational", // a parameter can be named
+    plan = @Aggregate.Plan(
+	stateType = "invariantproperties.rational",
+	accumulate = "invariantproperties.min"
     )
-})
+)
+@Aggregate(
+    name = "max",
+    arguments = "/**/ invariantproperties.rational", // or not named
+    plan = @Aggregate.Plan(
+	stateType = "invariantproperties.rational",
+	accumulate = "invariantproperties.max"
+    )
+)
 public class RationalUDT implements SQLData {
     private static final ResourceBundle bundle = ResourceBundle
             .getBundle(ComplexUDT.class.getName());
@@ -482,7 +481,6 @@ public class RationalUDT implements SQLData {
      * @throws SQLException
      */
     @Function(schema="invariantproperties",
-        provides="rationalmin",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
     public static RationalUDT min(RationalUDT p, RationalUDT q) {
         if ((p == null) || (p.value == null) || (q == null)
@@ -501,7 +499,6 @@ public class RationalUDT implements SQLData {
      * @throws SQLException
      */
     @Function(schema="invariantproperties",
-        provides="rationalmax",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
     public static RationalUDT max(RationalUDT p, RationalUDT q) {
         if ((p == null) || (p.value == null) || (q == null)
