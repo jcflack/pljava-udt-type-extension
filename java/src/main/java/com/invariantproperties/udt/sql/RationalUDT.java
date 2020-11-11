@@ -34,7 +34,6 @@ import org.postgresql.pljava.annotation.Cast;
 import org.postgresql.pljava.annotation.Function;
 import org.postgresql.pljava.annotation.Operator;
 import org.postgresql.pljava.annotation.SQLAction;
-import org.postgresql.pljava.annotation.SQLActions;
 import static org.postgresql.pljava.annotation.Cast.Application.ASSIGNMENT;
 import static
     org.postgresql.pljava.annotation.Function.OnNullInput.RETURNS_NULL;
@@ -55,6 +54,23 @@ import com.invariantproperties.udt.Rational;
  * @author bgiles@coyotesong.com
  */
 
+@SQLAction(
+    requires = "rational btree prereqs",
+    install = {
+        "CREATE OPERATOR CLASS rational_ops" +
+        "  DEFAULT FOR TYPE invariantproperties.rational USING btree AS" +
+        "    OPERATOR        1       <  ," +
+        "    OPERATOR        2       <= ," +
+        "    OPERATOR        3       == ," +
+        "    OPERATOR        4       >= ," +
+        "    OPERATOR        5       >  ," +
+        "    FUNCTION        1       invariantproperties.rational_cmp(" +
+        "           invariantproperties.rational, invariantproperties.rational)"
+    },
+    remove = {
+        "DROP OPERATOR FAMILY rational_ops USING btree"
+    }
+)
 @BaseUDT(
     schema="invariantproperties", name="rational",
     internalLength=16,
@@ -233,7 +249,8 @@ public class RationalUDT implements SQLData {
      * @return
      */
     @Function(schema="invariantproperties", name="rational_cmp",
-        effects=IMMUTABLE, onNullInput=RETURNS_NULL)
+        effects=IMMUTABLE, onNullInput=RETURNS_NULL,
+        provides = "rational btree prereqs")
     public static int compare(RationalUDT p, RationalUDT q) {
         if ((p == null) || (p.value == null) || (q == null)
                 || (q.value == null)) {
@@ -252,9 +269,11 @@ public class RationalUDT implements SQLData {
     @Function(schema="invariantproperties", name="rational_lt",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
     @Operator(name = "<", commutator = ">", negator = ">=",
-        restrict = SCALARLTSEL, join = SCALARLTJOINSEL)
+        restrict = SCALARLTSEL, join = SCALARLTJOINSEL,
+        provides = "rational btree prereqs")
     @Operator(name = ">", synthetic = "invariantproperties.rational_gt",
-        negator = "<=", restrict = SCALARGTSEL, join = SCALARGTJOINSEL)
+        negator = "<=", restrict = SCALARGTSEL, join = SCALARGTJOINSEL,
+        provides = "rational btree prereqs")
     public static boolean lessThan(RationalUDT p, RationalUDT q) {
         return compare(p, q) < 0;
     }
@@ -269,7 +288,8 @@ public class RationalUDT implements SQLData {
     @Function(schema="invariantproperties", name="rational_le",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
     @Operator(name = "<=", commutator = ">=", negator = ">",
-        restrict = SCALARLESEL, join = SCALARLEJOINSEL)
+        restrict = SCALARLESEL, join = SCALARLEJOINSEL,
+        provides = "rational btree prereqs")
     public static boolean lessThanOrEquals(RationalUDT p, RationalUDT q) {
         return compare(p, q) <= 0;
     }
@@ -286,7 +306,7 @@ public class RationalUDT implements SQLData {
     @Operator(name =  "=", commutator = SELF, negator = "<>",
         restrict = EQSEL, join = EQJOINSEL)
     @Operator(name = "==", commutator = SELF, negator = "<>",
-        restrict = EQSEL, join = EQJOINSEL)
+        restrict = EQSEL, join = EQJOINSEL, provides = "rational btree prereqs")
     @Operator(name = "<>", synthetic = "invariantproperties.rational_ne",
         commutator = SELF, negator = "==",
         restrict = NEQSEL, join = NEQJOINSEL)
@@ -304,7 +324,8 @@ public class RationalUDT implements SQLData {
     @Function(schema="invariantproperties", name="rational_ge",
         effects=IMMUTABLE, onNullInput=RETURNS_NULL)
     @Operator(name = ">=", commutator = "<=", negator = "<",
-        restrict = SCALARGESEL, join = SCALARGEJOINSEL)
+        restrict = SCALARGESEL, join = SCALARGEJOINSEL,
+        provides = "rational btree prereqs")
     public static boolean greaterThanOrEquals(RationalUDT p, RationalUDT q) {
         return lessThanOrEquals(q, p);
     }
